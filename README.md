@@ -1,4 +1,4 @@
--- LLGameHub - Sistema Completo
+-- LLGameHub - Sistema Completo com Velocidade de Voo Personalizável
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -107,8 +107,8 @@ end
 
 -- Criar painel principal
 local mainPanel = Instance.new("Frame")
-mainPanel.Size = UDim2.new(0, 350, 0, 350)
-mainPanel.Position = UDim2.new(0.5, -175, 0.5, -175)
+mainPanel.Size = UDim2.new(0, 350, 0, 400) -- Aumentei a altura para caber a caixa de texto
+mainPanel.Position = UDim2.new(0.5, -175, 0.5, -200)
 mainPanel.BackgroundColor3 = Color3.fromRGB(10, 30, 60)
 mainPanel.BorderSizePixel = 0
 mainPanel.Active = true
@@ -196,7 +196,7 @@ contentFrame.Position = UDim2.new(0, 10, 0, 90)
 contentFrame.BackgroundTransparency = 1
 contentFrame.BorderSizePixel = 0
 contentFrame.ScrollBarThickness = 5
-contentFrame.CanvasSize = UDim2.new(0, 0, 0, 300)
+contentFrame.CanvasSize = UDim2.new(0, 0, 0, 400) -- Aumentei para caber novos elementos
 contentFrame.Parent = mainPanel
 
 -- ============================================================
@@ -258,7 +258,7 @@ local invisToggle = createToggle(contentFrame, 0, 250, "Invisibilidade", functio
 end)
 invisToggle.frame.Visible = false
 
--- Slider de velocidade (aba Movimento)
+-- Slider de velocidade (aba Movimento) - agora com caixa de texto
 local speedLabel = Instance.new("TextLabel")
 speedLabel.Size = UDim2.new(0, 150, 0, 30)
 speedLabel.Position = UDim2.new(0, 0, 0, 300)
@@ -272,7 +272,7 @@ speedLabel.Visible = false
 speedLabel.Parent = contentFrame
 
 local speedSlider = Instance.new("Frame")
-speedSlider.Size = UDim2.new(0, 280, 0, 10)
+speedSlider.Size = UDim2.new(0, 200, 0, 10)
 speedSlider.Position = UDim2.new(0, 0, 0, 335)
 speedSlider.BackgroundColor3 = Color3.fromRGB(30, 60, 100)
 speedSlider.BorderSizePixel = 0
@@ -304,6 +304,40 @@ local UICorner7 = Instance.new("UICorner")
 UICorner7.CornerRadius = UDim.new(0, 10)
 UICorner7.Parent = sliderButton
 
+-- Caixa de texto para velocidade personalizada
+local speedInput = Instance.new("TextBox")
+speedInput.Size = UDim2.new(0, 60, 0, 25)
+speedInput.Position = UDim2.new(0, 210, 0, 328) -- ao lado do slider
+speedInput.BackgroundColor3 = Color3.fromRGB(20, 40, 70)
+speedInput.TextColor3 = Color3.fromRGB(200, 220, 255)
+speedInput.PlaceholderText = "Vel"
+speedInput.Font = Enum.Font.GothamBold
+speedInput.TextSize = 14
+speedInput.BorderSizePixel = 0
+speedInput.Visible = false
+speedInput.Parent = contentFrame
+
+local UICornerInput = Instance.new("UICorner")
+UICornerInput.CornerRadius = UDim.new(0, 5)
+UICornerInput.Parent = speedInput
+
+-- Botão "Aplicar" para confirmar valor digitado
+local applyButton = Instance.new("TextButton")
+applyButton.Size = UDim2.new(0, 50, 0, 25)
+applyButton.Position = UDim2.new(0, 275, 0, 328)
+applyButton.BackgroundColor3 = Color3.fromRGB(30, 100, 200)
+applyButton.Text = "OK"
+applyButton.TextColor3 = Color3.new(1, 1, 1)
+applyButton.Font = Enum.Font.GothamBold
+applyButton.TextSize = 14
+applyButton.BorderSizePixel = 0
+applyButton.Visible = false
+applyButton.Parent = contentFrame
+
+local UICornerApply = Instance.new("UICorner")
+UICornerApply.CornerRadius = UDim.new(0, 5)
+UICornerApply.Parent = applyButton
+
 -- Sistema de arrasto do slider
 local sliderDragging = false
 sliderButton.InputBegan:Connect(function(input)
@@ -318,6 +352,17 @@ sliderButton.InputEnded:Connect(function(input)
 	end
 end)
 
+-- Função para atualizar slider e label a partir de um valor
+local function updateSliderFromValue(value)
+	local clamped = math.clamp(value, 0, 100)
+	local percentage = clamped / 100
+	sliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+	sliderButton.Position = UDim2.new(percentage, -10, 0, -5)
+	flightSpeed = value
+	speedLabel.Text = "Velocidade: " .. flightSpeed
+	speedInput.Text = tostring(flightSpeed)
+end
+
 UserInputService.InputChanged:Connect(function(input)
 	if sliderDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
 		local mousePos = UserInputService:GetMouseLocation()
@@ -325,12 +370,32 @@ UserInputService.InputChanged:Connect(function(input)
 		local sliderSize = speedSlider.AbsoluteSize.X
 		local relativeX = math.clamp(mousePos.X - sliderPos.X, 0, sliderSize)
 		local percentage = relativeX / sliderSize
-		
-		sliderFill.Size = UDim2.new(percentage, 0, 1, 0)
-		sliderButton.Position = UDim2.new(percentage, -10, 0, -5)
-		
-		flightSpeed = math.floor(percentage * 100)
-		speedLabel.Text = "Velocidade: " .. flightSpeed
+		local speed = math.floor(percentage * 100)
+		updateSliderFromValue(speed)
+	end
+end)
+
+-- Evento do botão Aplicar
+applyButton.MouseButton1Click:Connect(function()
+	local text = speedInput.Text
+	local value = tonumber(text)
+	if value then
+		updateSliderFromValue(value)
+	else
+		speedInput.Text = tostring(flightSpeed)
+	end
+end)
+
+-- Permitir Enter para aplicar também
+speedInput.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		local text = speedInput.Text
+		local value = tonumber(text)
+		if value then
+			updateSliderFromValue(value)
+		else
+			speedInput.Text = tostring(flightSpeed)
+		end
 	end
 end)
 
@@ -362,6 +427,8 @@ local function showTab(tabName)
 	invisToggle.frame.Visible = (tabName == "Movimento")
 	speedLabel.Visible = (tabName == "Movimento")
 	speedSlider.Visible = (tabName == "Movimento")
+	speedInput.Visible = (tabName == "Movimento")
+	applyButton.Visible = (tabName == "Movimento")
 	
 	currentTab = tabName
 end
@@ -738,6 +805,7 @@ addButtonFeedback(minimizeBtn)
 addButtonFeedback(minimizedIcon)
 addButtonFeedback(tabVisual)
 addButtonFeedback(tabMovimento)
+addButtonFeedback(applyButton)
 
 -- Limpeza ao sair
 player.OnTeleport:Connect(function()
@@ -747,6 +815,6 @@ end)
 -- Notificação inicial
 StarterGui:SetCore("SendNotification", {
 	Title = "LLGameHub",
-	Text = "Sistema com abas carregado!",
+	Text = "Sistema com abas e velocidade personalizável carregado!",
 	Duration = 5
 })
